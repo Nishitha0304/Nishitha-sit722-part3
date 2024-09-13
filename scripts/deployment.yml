@@ -1,0 +1,103 @@
+# Deployment for book-catalog service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-catalog-deployment  # Name of the deployment
+  labels:
+    app: book-catalog  # Label to help identify the application
+spec:
+  replicas: 1  # Only one replica (instance) of the book-catalog microservice
+  selector:
+    matchLabels:
+      app: book-catalog  # Ensure that the pods selected have the app label set to book-catalog
+  template:
+    metadata:
+      labels:
+        app: book-catalog  # Label for all pods created by this deployment
+    spec:
+      containers:
+      - name: book-catalog
+        image: sit722part3container.azurecr.io/book_catalog_az:latest  # Image pulled from Azure Container Registry
+        imagePullPolicy: IfNotPresent  # Use the local image if present, pull otherwise (for production, you could set Always)
+        ports:
+        - containerPort: 5000  # The container listens on port 5000 internally
+        env:
+        - name: PORT
+          value: "5000"  # The application port set via environment variables
+        - name: DATABASE_URL
+          value: "postgresql://admin:t0SD9o3rcx4xkbTkhKJMzIzvl2ffgkgO@dpg-crfo9u2j1k6c7396ag80-a.oregon-postgres.render.com/library_db_3xdg"  # Database connection string
+        resources:
+          requests:  # Request limits for resource allocation
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+
+---
+# Service to expose book-catalog deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-catalog-service  # Name of the service for book-catalog
+spec:
+  selector:
+    app: book-catalog  # Service targets the book-catalog pods
+  type: LoadBalancer  # Exposes the service externally
+  ports:
+    - port: 4002  # External port exposed by the service
+      targetPort: 5000  # The internal container port that this service forwards to (5000 in the container)
+      protocol: TCP  # The protocol used (default is TCP)
+
+---
+
+# Deployment for inventory-management service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-management-deployment  # Name of the deployment
+  labels:
+    app: inventory-management  # Label to help identify the application
+spec:
+  replicas: 1  # Only one replica (instance) of the inventory-management microservice
+  selector:
+    matchLabels:
+      app: inventory-management  # Ensure that the pods selected have the app label set to inventory-management
+  template:
+    metadata:
+      labels:
+        app: inventory-management  # Label for all pods created by this deployment
+    spec:
+      containers:
+      - name: inventory-management
+        image: sit722part3container.azurecr.io/inventory_management_az:latest  # Image pulled from Azure Container Registry
+        imagePullPolicy: IfNotPresent  # Use the local image if present, pull otherwise
+        ports:
+        - containerPort: 5001  # The container listens on port 5001 internally
+        env:
+        - name: PORT
+          value: "5001"  # The application port set via environment variables
+        - name: DATABASE_URL
+          value: "postgresql://admin:t0SD9o3rcx4xkbTkhKJMzIzvl2ffgkgO@dpg-crfo9u2j1k6c7396ag80-a.oregon-postgres.render.com/library_db_3xdg"  # Database connection string
+        resources:
+          requests:  # Request limits for resource allocation
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+
+---
+# Service to expose inventory-management deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-management-service  # Name of the service for inventory-management
+spec:
+  selector:
+    app: inventory-management  # Service targets the inventory-management pods
+  type: LoadBalancer  # Exposes the service externally
+  ports:
+    - port: 4003  # External port exposed by the service
+      targetPort: 5001  # The internal container port that this service forwards to (5001 in the container)
+      protocol: TCP  # The protocol used (default is TCP)
